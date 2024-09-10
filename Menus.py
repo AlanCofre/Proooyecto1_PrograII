@@ -1,5 +1,3 @@
-from Stocks import Stock
-
 class Menu:
     def __init__(self, nombre, ingredientes_necesarios, precio):
         self.nombre = nombre
