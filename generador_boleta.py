@@ -1,60 +1,46 @@
 from fpdf import FPDF
 
-# Datos del pedido (puedes importar estos datos o definirlos aquí)
-productos = {
-    "Papas Fritas": {"precio": 1500, "cantidad": 0},
-    "Bebida": {"precio": 1000, "cantidad": 0},
-    "Hamburguesa": {"precio": 3000, "cantidad": 0},
-    "Completo": {"precio": 2500, "cantidad": 0}
-}
-
-def generar_boleta():
-    # Recolectar datos del pedido
-    items = [
-        {"nombre": producto, "cantidad": datos["cantidad"], "precio_unitario": datos["precio"], "subtotal": datos["cantidad"] * datos["precio"]}
-        for producto, datos in productos.items() if datos["cantidad"] > 0
-    ]
-    
-    subtotal = sum(item['subtotal'] for item in items)
-    iva = subtotal * 0.19
-    total = subtotal + iva
-    
-    # Crear el PDF
+def generar_boleta(items, subtotal, iva, total):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    # Título
-    pdf.cell(200, 10, txt="Boleta de Pedido", ln=True, align="C")
-    
-    # Detalles del pedido
-    pdf.ln(10)  # Espacio
-    pdf.cell(100, 10, txt="Producto", border=1)
-    pdf.cell(30, 10, txt="Cantidad", border=1)
-    pdf.cell(30, 10, txt="Subtotal", border=1)
-    pdf.ln()
-    
-    for item in items:
-        pdf.cell(100, 10, txt=item["nombre"], border=1)
-        pdf.cell(30, 10, txt=str(item["cantidad"]), border=1)
-        pdf.cell(30, 10, txt=f"${item['subtotal']}", border=1)
-        pdf.ln()
-    
-    pdf.ln(10)  # Espacio
-    pdf.cell(100, 10, txt="Subtotal", border=1)
-    pdf.cell(30, 10, txt=f"${subtotal}", border=1)
-    pdf.ln()
-    
-    pdf.cell(100, 10, txt="IVA (19%)", border=1)
-    pdf.cell(30, 10, txt=f"${iva:.2f}", border=1)
-    pdf.ln()
-    
-    pdf.cell(100, 10, txt="Total", border=1)
-    pdf.cell(30, 10, txt=f"${total:.2f}", border=1)
-    
-    # Guardar el PDF
-    pdf.output("Boleta_pedido.pdf")
-    print("Boleta generada exitosamente.")
 
-if __name__ == "__main__":
-    generar_boleta()
+    # Título de la boleta
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, 'Boleta de Venta', ln=True, align='C')
+
+    # Espacio
+    pdf.ln(10)
+
+    # Encabezados de tabla
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(80, 10, 'Producto', border=1)
+    pdf.cell(40, 10, 'Cantidad', border=1)
+    pdf.cell(40, 10, 'Precio Unitario', border=1)
+    pdf.cell(40, 10, 'Subtotal', border=1)
+    pdf.ln()
+
+    # Agregar productos
+    pdf.set_font('Arial', '', 12)
+    for item in items:
+        pdf.cell(80, 10, item['nombre'], border=1)
+        pdf.cell(40, 10, str(item['cantidad']), border=1)
+        pdf.cell(40, 10, f"{item['precio_unitario']} CLP", border=1)
+        pdf.cell(40, 10, f"{item['subtotal']} CLP", border=1)
+        pdf.ln()
+
+    # Espacio
+    pdf.ln(10)
+
+    # Subtotal, IVA y Total
+    pdf.cell(160, 10, 'Subtotal:', border=0)
+    pdf.cell(40, 10, f"{subtotal} CLP", border=1, ln=True)
+    
+    pdf.cell(160, 10, 'IVA (19%):', border=0)
+    pdf.cell(40, 10, f"{iva} CLP", border=1, ln=True)
+
+    pdf.cell(160, 10, 'Total:', border=0)
+    pdf.cell(40, 10, f"{total} CLP", border=1, ln=True)
+
+    # Guardar el PDF
+    pdf.output('boleta.pdf')
+    
