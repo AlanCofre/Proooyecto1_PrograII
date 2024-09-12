@@ -6,7 +6,7 @@ from Menus import Menu
 # Crear la ventana principal
 ventana = ctk.CTk()
 ventana.title("Gestión de Ingredientes")
-ventana.geometry("600x500")
+ventana.geometry("500x400")
 
 # Establecer tema y tamaño de fuente
 ctk.set_appearance_mode("dark")
