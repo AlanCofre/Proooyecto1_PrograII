@@ -1,11 +1,13 @@
 import customtkinter as ctk
 from tkinter import ttk
 from PIL import Image
+import subprocess  # Para llamar al script de generación de boletas
+from GeneradorBoleta import PDF
 
 # Crear la ventana principal
 ventana = ctk.CTk()
 ventana.title("Sistema de Pedidos")
-ventana.geometry("700x600")
+ventana.geometry("500x400")
 
 # Establecer tema y tamaño de fuente
 ctk.set_appearance_mode("dark")
@@ -61,6 +63,21 @@ def eliminar_pedido():
         productos[producto]["cantidad"] = 0
     mostrar_pedido()
 
+# Función para generar la boleta
+def generar_boleta():
+    # Recolectar datos del pedido
+    items = [
+        {"nombre": producto, "cantidad": datos["cantidad"], "precio_unitario": datos["precio"], "subtotal": datos["cantidad"] * datos["precio"]}
+        for producto, datos in productos.items() if datos["cantidad"] > 0
+    ]
+    
+    subtotal = sum(item['subtotal'] for item in items)
+    iva = subtotal * 0.19
+    total = subtotal + iva
+    
+    # Pasar datos al script de generación de boletas
+    subprocess.run(['python', 'generador_boleta.py', str(subtotal), str(iva), str(total)], check=True)
+
 # Crear botones con íconos para cada producto
 frame_botones = ctk.CTkFrame(ventana)
 frame_botones.pack(pady=10)
@@ -73,6 +90,10 @@ ctk.CTkButton(frame_botones, image=icon_completo, text="Completo", command=lambd
 # Botón para eliminar el menú
 eliminar_button = ctk.CTkButton(ventana, text="Eliminar Pedido", command=eliminar_pedido, fg_color="red")
 eliminar_button.pack(pady=10)
+
+# Botón para generar la boleta
+generar_boleta_button = ctk.CTkButton(ventana, text="Generar Boleta", command=generar_boleta, fg_color="blue")
+generar_boleta_button.pack(pady=10)
 
 # Etiqueta para mostrar el total
 total_label = ctk.CTkLabel(ventana, text="Total: 0 CLP", font=("Arial", 16))
