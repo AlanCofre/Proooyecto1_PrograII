@@ -3,6 +3,8 @@ from tkinter import ttk
 from PIL import Image
 from Ingredientes import Ingrediente
 from Menus import Menu
+import subprocess  # Para llamar al script de generación de boletas
+
 
 # Crear la ventana principal
 ventana = ctk.CTk()
@@ -13,17 +15,15 @@ ventana.geometry("800x600")
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
-# Crear el Notebook para las pestañas
-notebook = ttk.Notebook(ventana)
-notebook.pack(expand=True, fill='both')
+# Crear el Tabview para las pestañas
+tabview = ctk.CTkTabview(ventana)
+tabview.pack(expand=True, fill='both')
 
 # Pestaña de Gestión de Ingredientes
-pestaña_ingredientes = ttk.Frame(notebook)
-notebook.add(pestaña_ingredientes, text="Gestión de Ingredientes")
+pestaña_ingredientes = tabview.add("Gestión de Ingredientes")
 
 # Pestaña de Venta de Menús
-pestaña_menus = ttk.Frame(notebook)
-notebook.add(pestaña_menus, text="Venta de Menús")
+pestaña_menus = tabview.add("Venta de Menús")
 
 # --- Pestaña de Gestión de Ingredientes ---
 # Crear una tabla (Treeview) para mostrar los ingredientes
