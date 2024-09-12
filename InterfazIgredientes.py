@@ -1,71 +1,132 @@
 import tkinter as tk
-from tkinter import ttk
-import customtkinter as ctk
+from tkinter import ttk, messagebox
+from ttkthemes import ThemedTk
 
-# Clases de Ingredientes y Stock
-class Ingrediente: 
+class Ingrediente:
     def __init__(self, nombre, cantidad):
         self.nombre = nombre
         self.cantidad = cantidad
 
+    def actualizar_cantidad(self, cantidad):
+        self.cantidad += cantidad
+        if self.cantidad < 0:
+            self.cantidad = 0
+
 class Stock:
     def __init__(self):
         self.ingredientes = {}
-    
+
     def agregar_ingrediente(self, nombre, cantidad):
         if nombre in self.ingredientes:
-            self.ingredientes[nombre].cantidad += cantidad
+            self.ingredientes[nombre].actualizar_cantidad(cantidad)
         else:
             self.ingredientes[nombre] = Ingrediente(nombre, cantidad)
 
-    def obtener_ingredientes(self):
-        return self.ingredientes
+    def eliminar_ingrediente(self, nombre):
+        if nombre in self.ingredientes:
+            del self.ingredientes[nombre]
 
-# Crear instancia de Stock
-almacen_ingredientes = Stock()
+    def mostrar_ingredientes(self):
+        return {nombre: ingrediente.cantidad for nombre, ingrediente in self.ingredientes.items()}
 
-# Función para actualizar el Treeview
-def actualizar_treeview():
-    for item in tree.get_children():
-        tree.delete(item)
-    for ingrediente in almacen_ingredientes.obtener_ingredientes().values():
-        tree.insert("", "end", values=(ingrediente.nombre, ingrediente.cantidad))
+class Aplicacion:
+    def __init__(self, root):
+        self.stock = Stock()
 
-# Función para agregar ingrediente
-def agregar_ingrediente():
-    nombre = entry_nombre.get()
-    cantidad = int(entry_cantidad.get())
-    almacen_ingredientes.agregar_ingrediente(nombre, cantidad)
-    actualizar_treeview()
+        self.root = root
+        self.root.title("Gestión de Ingredientes y Pedidos")
+        self.root.geometry("600x450")
+        self.root.configure(background="black")  # Fondo negro
 
-# Configuración de la interfaz
-root = ctk.CTk()
-root.title("Gestión de Ingredientes")
+        # Estilo para que coincida con la vista negra
+        style = ttk.Style()
+        style.configure("TLabel", background="black", foreground="white", font=("Helvetica", 12))
+        style.configure("TButton", background="black", foreground="white", font=("Helvetica", 10))
+        style.configure("Treeview", background="black", foreground="white", fieldbackground="black", font=("Helvetica", 10))
+        style.map("TButton", background=[('active', '#5E5E5E')])
 
-# Labels y entradas
-label_nombre = ctk.CTkLabel(root, text="Nombre del Ingrediente")
-label_nombre.grid(row=0, column=0, padx=10, pady=10)
-entry_nombre = ctk.CTkEntry(root)
-entry_nombre.grid(row=0, column=1, padx=10, pady=10)
+        # Pestañas superiores
+        self.notebook = ttk.Notebook(self.root)
+        self.frame_ingredientes = ttk.Frame(self.notebook, padding="10", style="TFrame")
+        self.frame_pedidos = ttk.Frame(self.notebook, padding="10", style="TFrame")
 
-label_cantidad = ctk.CTkLabel(root, text="Cantidad")
-label_cantidad.grid(row=1, column=0, padx=10, pady=10)
-entry_cantidad = ctk.CTkEntry(root)
-entry_cantidad.grid(row=1, column=1, padx=10, pady=10)
+        self.notebook.add(self.frame_ingredientes, text="Ingreso de Ingredientes")
+        self.notebook.add(self.frame_pedidos, text="Pedido")
+        self.notebook.pack(expand=True, fill="both")
 
-# Botón para agregar ingrediente
-boton_agregar = ctk.CTkButton(root, text="Agregar Ingrediente", command=agregar_ingrediente)
-boton_agregar.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+        # Etiquetas y entradas para los ingredientes
+        self.nombre_label = ttk.Label(self.frame_ingredientes, text="Nombre del Ingrediente:")
+        self.nombre_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.nombre_entry = ttk.Entry(self.frame_ingredientes, width=25)
+        self.nombre_entry.grid(row=0, column=1, padx=10, pady=10, sticky="e")
 
-# Treeview para mostrar ingredientes
-tree = ttk.Treeview(root, columns=("Nombre", "Cantidad"), show="headings")
-tree.heading("Nombre", text="Nombre")
-tree.heading("Cantidad", text="Cantidad")
-tree.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+        self.cantidad_label = ttk.Label(self.frame_ingredientes, text="Cantidad:")
+        self.cantidad_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.cantidad_entry = ttk.Entry(self.frame_ingredientes, width=25)
+        self.cantidad_entry.grid(row=1, column=1, padx=10, pady=10, sticky="e")
 
-# Configurar tamaños de columnas
-tree.column("Nombre", width=150)
-tree.column("Cantidad", width=100)
+        # Botón para agregar ingrediente
+        self.agregar_btn = ttk.Button(self.frame_ingredientes, text="Ingresar Ingrediente", command=self.agregar_ingrediente)
+        self.agregar_btn.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
 
-# Iniciar la aplicación
+        # Lista de ingredientes
+        self.frame_lista = ttk.Frame(self.frame_ingredientes)
+        self.frame_lista.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+
+        self.lista_ingredientes = ttk.Treeview(self.frame_lista, columns=("Nombre", "Cantidad"), show="headings", height=10)
+        self.lista_ingredientes.heading("Nombre", text="Nombre")
+        self.lista_ingredientes.heading("Cantidad", text="Cantidad")
+        self.lista_ingredientes.column("Nombre", width=150)
+        self.lista_ingredientes.column("Cantidad", width=80)
+        self.lista_ingredientes.pack(side="left", fill="y")
+
+        # Scrollbar para la lista
+        self.scrollbar = ttk.Scrollbar(self.frame_lista, orient="vertical", command=self.lista_ingredientes.yview)
+        self.lista_ingredientes.configure(yscroll=self.scrollbar.set)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Botón para eliminar ingrediente
+        self.eliminar_btn = ttk.Button(self.frame_ingredientes, text="Eliminar Ingrediente", command=self.eliminar_ingrediente)
+        self.eliminar_btn.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+
+        # Botón para generar menú (placeholder)
+        self.generar_menu_btn = ttk.Button(self.frame_ingredientes, text="Generar Menú", command=self.generar_menu)
+        self.generar_menu_btn.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
+
+    def agregar_ingrediente(self):
+        nombre = self.nombre_entry.get()
+        cantidad = self.cantidad_entry.get()
+
+        if nombre and cantidad.isdigit():
+            cantidad = int(cantidad)
+            self.stock.agregar_ingrediente(nombre, cantidad)
+            self.actualizar_lista()
+            self.nombre_entry.delete(0, tk.END)
+            self.cantidad_entry.delete(0, tk.END)
+        else:
+            messagebox.showerror("Error", "Por favor, ingrese un nombre y una cantidad válida.")
+
+    def eliminar_ingrediente(self):
+        selected_item = self.lista_ingredientes.selection()
+        if selected_item:
+            nombre = self.lista_ingredientes.item(selected_item, 'values')[0]
+            self.stock.eliminar_ingrediente(nombre)
+            self.actualizar_lista()
+        else:
+            messagebox.showerror("Error", "Seleccione un ingrediente para eliminar.")
+
+    def actualizar_lista(self):
+        for item in self.lista_ingredientes.get_children():
+            self.lista_ingredientes.delete(item)
+
+        for nombre, cantidad in self.stock.mostrar_ingredientes().items():
+            self.lista_ingredientes.insert("", tk.END, values=(nombre, cantidad))
+
+    def generar_menu(self):
+        messagebox.showinfo("Menú", "Función para generar menú aún no implementada.")
+
+# Configurar la ventana principal con un tema
+root = ThemedTk(theme="breeze")  # Puedes probar con otros temas como 'radiance', 'arc', 'clearlooks'
+app = Aplicacion(root)
 root.mainloop()
+
