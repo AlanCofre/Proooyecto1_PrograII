@@ -1,8 +1,9 @@
 import customtkinter as ctk
 from tkinter import ttk
 from PIL import Image
-import subprocess  # Para llamar al script de generación de boletas
-from GeneradorBoleta import PDF
+from Menus import Menu
+from Ingredientes import Ingrediente
+from Pedidos import Pedido
 
 # Crear la ventana principal
 ventana = ctk.CTk()
@@ -19,13 +20,14 @@ icon_bebida = ctk.CTkImage(Image.open("IMG/icono_cola_64x64.png"), size=(40, 40)
 icon_hamburguesa = ctk.CTkImage(Image.open("IMG/icono_hamburguesa_negra_64x64.png"), size=(40, 40))
 icon_completo = ctk.CTkImage(Image.open("IMG/icono_hotdog_sin_texto_64x64.png"), size=(40, 40))
 
-# Variables para los productos
-productos = {
-    "Papas Fritas": {"precio": 1500, "cantidad": 0},
-    "Bebida": {"precio": 1000, "cantidad": 0},
-    "Hamburguesa": {"precio": 3000, "cantidad": 0},
-    "Completo": {"precio": 2500, "cantidad": 0}
-}
+# Crear menús
+papas_fritas = Menu("Papas Fritas", [Ingrediente("Papas", 5)], 500)
+bebida = Menu("Bebida", [Ingrediente("Bebida", 1)], 1100)
+hamburguesa = Menu("Hamburguesa", [Ingrediente("Pan Hamburguesa", 1), Ingrediente("Churrasco de Carne", 1), Ingrediente("Lámina de Queso", 1)], 3500)
+completo = Menu("Completo", [Ingrediente("Pan", 1), Ingrediente("Vienesa", 1), Ingrediente("Tomate", 1), Ingrediente("Palta", 1)], 1800)
+
+# Crear un objeto de la clase Pedido
+pedido = Pedido()
 
 # Crear una tabla (Treeview) para mostrar el pedido
 tabla = ttk.Treeview(ventana, columns=("Producto", "Cantidad", "Valor"), show="headings", height=8)
@@ -35,8 +37,8 @@ tabla.heading("Valor", text="Valor Total (CLP)")
 tabla.pack(pady=10)
 
 # Función para actualizar el pedido
-def actualizar_pedido(producto):
-    productos[producto]["cantidad"] += 1
+def actualizar_pedido(menu):
+    pedido.agregar_menu(menu, stock)  # Usar el objeto Pedido para manejar la lógica
     mostrar_pedido()
 
 # Función para mostrar el pedido en la tabla y calcular el total
@@ -45,47 +47,35 @@ def mostrar_pedido():
     for row in tabla.get_children():
         tabla.delete(row)
     
-    total_general = 0  # Inicializar el total general
+    total_general = pedido.total  # Usar el total del objeto Pedido
     
-    for producto, datos in productos.items():
-        cantidad = datos["cantidad"]
-        if cantidad > 0:
-            valor = cantidad * datos["precio"]
-            total_general += valor  # Sumar el valor de cada producto al total general
-            tabla.insert("", "end", values=(producto, cantidad, valor))
+    # Mostrar cada menú en la tabla
+    for menu in pedido.menus:
+        cantidad = sum(1 for m in pedido.menus if m.nombre == menu.nombre)  # Contar cuántas veces se ha agregado el menú
+        valor = cantidad * menu.precio
+        tabla.insert("", "end", values=(menu.nombre, cantidad, valor))
     
     # Actualizar la etiqueta del total acumulado
     total_label.configure(text=f"Total: {total_general} CLP")
 
 # Función para eliminar todos los productos
 def eliminar_pedido():
-    for producto in productos:
-        productos[producto]["cantidad"] = 0
+    for menu in pedido.menus[:]:  # Iterar sobre una copia de la lista para evitar errores
+        pedido.eliminar_menu(menu, stock)
     mostrar_pedido()
 
 # Función para generar la boleta
 def generar_boleta():
-    # Recolectar datos del pedido
-    items = [
-        {"nombre": producto, "cantidad": datos["cantidad"], "precio_unitario": datos["precio"], "subtotal": datos["cantidad"] * datos["precio"]}
-        for producto, datos in productos.items() if datos["cantidad"] > 0
-    ]
-    
-    subtotal = sum(item['subtotal'] for item in items)
-    iva = subtotal * 0.19
-    total = subtotal + iva
-    
-    # Pasar datos al script de generación de boletas
-    subprocess.run(['python', 'generador_boleta.py', str(subtotal), str(iva), str(total)], check=True)
+    pedido.generar_boleta()  # Usar el método del objeto Pedido
 
 # Crear botones con íconos para cada producto
 frame_botones = ctk.CTkFrame(ventana)
 frame_botones.pack(pady=10)
 
-ctk.CTkButton(frame_botones, image=icon_papas, text="Papas Fritas", command=lambda: actualizar_pedido("Papas Fritas"), width=200, height=40).grid(row=0, column=0, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_bebida, text="Bebida", command=lambda: actualizar_pedido("Bebida"), width=200, height=40).grid(row=0, column=1, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_hamburguesa, text="Hamburguesa", command=lambda: actualizar_pedido("Hamburguesa"), width=200, height=40).grid(row=1, column=0, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_completo, text="Completo", command=lambda: actualizar_pedido("Completo"), width=200, height=40).grid(row=1, column=1, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_papas, text="Papas Fritas", command=lambda: actualizar_pedido(papas_fritas), width=200, height=40).grid(row=0, column=0, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_bebida, text="Bebida", command=lambda: actualizar_pedido(bebida), width=200, height=40).grid(row=0, column=1, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_hamburguesa, text="Hamburguesa", command=lambda: actualizar_pedido(hamburguesa), width=200, height=40).grid(row=1, column=0, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_completo, text="Completo", command=lambda: actualizar_pedido(completo), width=200, height=40).grid(row=1, column=1, padx=10, pady=10)
 
 # Botón para eliminar el menú
 eliminar_button = ctk.CTkButton(ventana, text="Eliminar Pedido", command=eliminar_pedido, fg_color="red")
