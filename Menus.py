@@ -1,24 +1,13 @@
 class Menu:
-    def __init__(self, nombre, ingredientes_necesarios, precio):
+    def __init__(self, nombre, precio, ingredientes):
         self.nombre = nombre
-        self.ingredientes_necesarios = ingredientes_necesarios
         self.precio = precio
-    
-    def ingredientes_suficientes(self, stock):
-        for ingrediente, cantidad_necesaria in self.ingredientes_necesarios.items():
-            if ingrediente not in stock.ingredientes or stock.ingredientes[ingrediente].cantidad < cantidad_necesaria:
-                return False
-        return True
-    
-    def descontar_ingredientes(self, stock):
-        if self.ingredientes_suficientes(stock):
-            for ingrediente, cantidad in self.ingredientes_necesarios.items():
-                stock.ingredientes[ingrediente].actualizar_cantidad(-cantidad)          
+        self.ingredientes = ingredientes
 
-    def reponer_ingredientes(self, stock):
-        for ingrediente, cantidad in self.ingredientes_necesarios.items():
-            stock.ingredientes[ingrediente].actualizar_cantidad(cantidad)
-
-
-
-
+# Definir los menús disponibles
+MENUS_DISPONIBLES = [
+    Menu("Papas fritas", 500, {"papas": 5}),
+    Menu("Pepsi", 1100, {"bebida": 1}),
+    Menu("Completo", 1800, {"vienesa": 1, "pan de completo": 1, "tomate": 1, "palta": 1}),
+    Menu("Hamburguesa", 3500, {"pan de hamburguesa": 1, "lamina de queso": 1, "churrasco de carne": 1}),
+]

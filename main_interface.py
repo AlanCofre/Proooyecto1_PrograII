@@ -1,9 +1,13 @@
 import customtkinter as ctk
 from tkinter import ttk
+from tkinter import messagebox
 from PIL import Image
 from Ingredientes import Ingrediente
-from Menus import Menu
-from generador_boleta import generar_boleta  # Importar la función desde generador_boleta
+from Menus import Menu, MENUS_DISPONIBLES
+from Stocks import Stock
+from Pedidos import Pedido
+from generador_boleta import generar_boleta
+
 
 # Crear la ventana principal
 ventana = ctk.CTk()
@@ -13,6 +17,10 @@ ventana.geometry("800x600")
 # Establecer tema y tamaño de fuente
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
+
+# Crear instancias de Stock y Pedido
+stock = Stock()
+pedido = Pedido()
 
 # Crear el Tabview para las pestañas
 tabview = ctk.CTkTabview(ventana)
@@ -31,17 +39,14 @@ tabla_ingredientes.heading("Nombre", text="Nombre")
 tabla_ingredientes.heading("Cantidad", text="Cantidad")
 tabla_ingredientes.pack(pady=10)
 
-# Variables para los ingredientes
-ingredientes = []
-
 # Función para agregar un ingrediente
 def agregar_ingrediente():
     nombre = nombre_entry.get()
     cantidad = cantidad_entry.get()
     if nombre and cantidad.isdigit():
         cantidad = int(cantidad)
-        ingrediente = Ingrediente(nombre, cantidad)
-        ingredientes.append(ingrediente)
+        # Añadir ingrediente al stock
+        stock.agregar_ingrediente(nombre, cantidad)
         mostrar_ingredientes()
         nombre_entry.delete(0, 'end')
         cantidad_entry.delete(0, 'end')
@@ -52,8 +57,8 @@ def eliminar_ingrediente():
     if selected_item:
         item_values = tabla_ingredientes.item(selected_item)['values']
         nombre = item_values[0]
-        global ingredientes
-        ingredientes = [i for i in ingredientes if i.nombre != nombre]
+        # Eliminar ingrediente del stock
+        stock.eliminar_ingrediente(nombre, item_values[1])
         mostrar_ingredientes()
 
 # Función para mostrar los ingredientes en la tabla
@@ -63,8 +68,9 @@ def mostrar_ingredientes():
         tabla_ingredientes.delete(row)
     
     # Insertar los ingredientes en la tabla
-    for ingrediente in ingredientes:
-        tabla_ingredientes.insert("", "end", values=(ingrediente.nombre, ingrediente.cantidad))
+    for nombre, cantidad in stock.obtener_ingredientes():
+        tabla_ingredientes.insert("", "end", values=(nombre, cantidad))
+
 
 # Crear un frame para los controles de agregar ingredientes
 frame_agregar = ctk.CTkFrame(pestaña_ingredientes)
@@ -98,19 +104,26 @@ tabla_menus.heading("Cantidad", text="Cantidad")
 tabla_menus.heading("Valor", text="Valor Total (CLP)")
 tabla_menus.pack(pady=10)
 
-# Variables para los productos
-productos = {
-    "Papas Fritas": {"precio": 500, "cantidad": 0},
-    "Bebida": {"precio": 1100, "cantidad": 0},
-    "Hamburguesa": {"precio": 3500, "cantidad": 0},
-    "Completo": {"precio": 1800, "cantidad": 0}
-}
-
 # Función para actualizar el pedido
 def actualizar_pedido(producto):
-    productos[producto]["cantidad"] += 1
-    mostrar_pedido()
+    # Determinar qué menú corresponde al producto seleccionado
+    for menu in MENUS_DISPONIBLES:
+        if menu.nombre == producto:
+            # Verificar si hay ingredientes suficientes en el stock
+            if stock.verificar_ingredientes(menu.ingredientes):
+                # Restar los ingredientes utilizados del stock
+                for ingrediente, cantidad in menu.ingredientes.items():
+                    stock.eliminar_ingrediente(ingrediente, cantidad)
 
+                # Añadir el menú al pedido
+                pedido.agregar_menu(menu)
+
+                # Mostrar el pedido actualizado en la interfaz
+                mostrar_pedido()
+            else:
+                # Mostrar un mensaje de advertencia si no hay stock suficiente
+                messagebox.showwarning("Stock insuficiente", f"No hay suficiente stock para {producto}")
+            return
 # Función para mostrar el pedido en la tabla y calcular el total
 def mostrar_pedido():
     # Limpiar la tabla
@@ -119,28 +132,31 @@ def mostrar_pedido():
     
     total_general = 0  # Inicializar el total general
     
-    for producto, datos in productos.items():
-        cantidad = datos["cantidad"]
-        if cantidad > 0:
-            valor = cantidad * datos["precio"]
-            total_general += valor  # Sumar el valor de cada producto al total general
-            tabla_menus.insert("", "end", values=(producto, cantidad, valor))
+    for menu in pedido.menus:
+        cantidad = 1  # Cada menú representa una unidad de producto
+        valor = menu.precio
+        total_general += valor  # Sumar el valor de cada producto al total general
+        tabla_menus.insert("", "end", values=(menu.nombre, cantidad, valor))
     
     # Actualizar la etiqueta del total acumulado
     total_label.configure(text=f"Total: {total_general} CLP")
 
-# Función para eliminar todos los productos
+# Función para eliminar todos los productos del pedido
 def eliminar_pedido():
-    for producto in productos:
-        productos[producto]["cantidad"] = 0
+    for menu in pedido.menus:
+        if menu:
+            for nombre, cantidad in menu.ingredientes.items():
+                stock.agregar_ingrediente(nombre, cantidad)
+    pedido.menus = []
+    pedido.total = 0
     mostrar_pedido()
 
 # Función para generar la boleta y pasar los datos correctamente
 def generar_boleta_interfaz():
     # Recolectar datos del pedido
     items = [
-        {"nombre": producto, "cantidad": datos["cantidad"], "precio_unitario": datos["precio"], "subtotal": datos["cantidad"] * datos["precio"]}
-        for producto, datos in productos.items() if datos["cantidad"] > 0
+        {"nombre": menu.nombre, "cantidad": sum(1 for m in pedido.menus if m.nombre == menu.nombre), "precio_unitario": menu.precio, "subtotal": sum(1 for m in pedido.menus if m.nombre == menu.nombre) * menu.precio}
+        for menu in set(pedido.menus)
     ]
     
     # Calcular subtotal, IVA, y total
@@ -161,8 +177,8 @@ icon_bebida = ctk.CTkImage(Image.open("IMG/icono_cola_64x64.png"), size=(40, 40)
 icon_hamburguesa = ctk.CTkImage(Image.open("IMG/icono_hamburguesa_negra_64x64.png"), size=(40, 40))
 icon_completo = ctk.CTkImage(Image.open("IMG/icono_hotdog_sin_texto_64x64.png"), size=(40, 40))
 
-ctk.CTkButton(frame_botones, image=icon_papas, text="Papas Fritas", command=lambda: actualizar_pedido("Papas Fritas"), width=200, height=40).grid(row=0, column=0, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_bebida, text="Bebida", command=lambda: actualizar_pedido("Bebida"), width=200, height=40).grid(row=0, column=1, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_papas, text="Papas Fritas", command=lambda: actualizar_pedido("Papas fritas"), width=200, height=40).grid(row=0, column=0, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_bebida, text="Pepsi", command=lambda: actualizar_pedido("Pepsi"), width=200, height=40).grid(row=0, column=1, padx=10, pady=10)
 ctk.CTkButton(frame_botones, image=icon_hamburguesa, text="Hamburguesa", command=lambda: actualizar_pedido("Hamburguesa"), width=200, height=40).grid(row=1, column=0, padx=10, pady=10)
 ctk.CTkButton(frame_botones, image=icon_completo, text="Completo", command=lambda: actualizar_pedido("Completo"), width=200, height=40).grid(row=1, column=1, padx=10, pady=10)
 
@@ -171,12 +187,15 @@ eliminar_button = ctk.CTkButton(pestaña_menus, text="Eliminar Pedido", command=
 eliminar_button.pack(pady=10)
 
 # Botón para generar la boleta
-generar_boleta_button = ctk.CTkButton(pestaña_menus, text="Generar Boleta", command=generar_boleta_interfaz, fg_color="blue")
+generar_boleta_button = ctk.CTkButton(pestaña_menus, text="Generar Boleta", command=generar_boleta_interfaz)
 generar_boleta_button.pack(pady=10)
 
 # Etiqueta para mostrar el total
 total_label = ctk.CTkLabel(pestaña_menus, text="Total: 0 CLP", font=("Arial", 16))
 total_label.pack(pady=10)
 
-# Ejecutar la interfaz
+# Mostrar los ingredientes al inicio
+mostrar_ingredientes()
+
+# Ejecutar el bucle principal de la interfaz
 ventana.mainloop()
