@@ -42,30 +42,41 @@ tabla_ingredientes.pack(pady=10)
 
 # Función para agregar un ingrediente
 def agregar_ingrediente():
-    nombre = nombre_entry.get()
-    cantidad = cantidad_entry.get()
+    nombre = nombre_entry.get().strip()  # Quitar espacios en blanco del nombre
+    cantidad_str = cantidad_entry.get().strip()  # Quitar espacios en blanco de la cantidad
     
-    if nombre and cantidad:
-        if cantidad.isdigit():
-            cantidad = int(cantidad)
-            stock.agregar_ingrediente(nombre, cantidad)
-            mostrar_ingredientes()
-            nombre_entry.delete(0, 'end')
-            cantidad_entry.delete(0, 'end')
-        else:
-            messagebox.showwarning("Advertencia", "La cantidad debe ser un número entero positivo.")
-    else:
-        messagebox.showwarning("Advertencia", "Por favor, complete todos los campos.")
-
+    # Validar que no estén vacíos
+    if not nombre or not cantidad_str:
+        messagebox.showwarning("Campo vacío", "Por favor, complete todos los campos.")
+        return
+    
+    # Validar que la cantidad sea un número entero
+    if not cantidad_str.isdigit():
+        messagebox.showwarning("Cantidad inválida", "La cantidad debe ser un número entero positivo.")
+        return
+    
+    cantidad = int(cantidad_str)
+    
+    # Agregar el ingrediente al stock
+    stock.agregar_ingrediente(nombre, cantidad)
+    
+    # Actualizar la tabla de ingredientes
+    mostrar_ingredientes()
+    
+    # Limpiar las entradas
+    nombre_entry.delete(0, 'end')
+    cantidad_entry.delete(0, 'end')
 # Función para eliminar un ingrediente
 def eliminar_ingrediente():
     selected_item = tabla_ingredientes.selection()
-    if selected_item:
-        item_values = tabla_ingredientes.item(selected_item)['values']
-        nombre = item_values[0]
-        # Eliminar ingrediente del stock
-        stock.eliminar_ingrediente(nombre, item_values[1])
-        mostrar_ingredientes()
+    if not selected_item:
+        messagebox.showwarning("Selección requerida", "Por favor, seleccione un ingrediente para eliminar.")
+        return
+    item_values = tabla_ingredientes.item(selected_item)['values']
+    nombre = item_values[0]
+    # Eliminar ingrediente del stock
+    stock.eliminar_ingrediente(nombre, item_values[1])
+    mostrar_ingredientes()
 
 # Función para mostrar los ingredientes en la tabla
 def mostrar_ingredientes():
@@ -155,29 +166,29 @@ def mostrar_pedido():
 # Función para eliminar el menú seleccionado y devolver los ingredientes al stock
 def eliminar_menu_seleccionado():
     selected_item = tabla_menus.selection()
-    if selected_item:
-        item_values = tabla_menus.item(selected_item)['values']
-        producto = item_values[0]
+    if not selected_item:
+        messagebox.showwarning("Selección requerida", "Por favor, seleccione un menú para eliminar.")
+        return
+    item_values = tabla_menus.item(selected_item)['values']
+    producto = item_values[0]
 
-        # Buscar el menú en el pedido
-        menu_a_eliminar = None
-        for menu in pedido.menus:
-            if menu.nombre == producto:
-                menu_a_eliminar = menu
-                break
+    # Buscar el menú en el pedido
+    menu_a_eliminar = None
+    for menu in pedido.menus:
+        if menu.nombre == producto:
+            menu_a_eliminar = menu
+            break
 
-        if menu_a_eliminar:
-            # Reponer los ingredientes al stock
-            for nombre, cantidad in menu_a_eliminar.ingredientes.items():
-                stock.agregar_ingrediente(nombre, cantidad)
+    if menu_a_eliminar:
+        # Reponer los ingredientes al stock
+        for nombre, cantidad in menu_a_eliminar.ingredientes.items():
+            stock.agregar_ingrediente(nombre, cantidad)
             
-            # Eliminar el menú del pedido
-            pedido.eliminar_menu(menu_a_eliminar)
-
-            # Actualizar la vista del Treeview
-            mostrar_pedido()
-
-            mostrar_ingredientes()
+        # Eliminar el menú del pedido
+        pedido.eliminar_menu(menu_a_eliminar)
+        # Actualizar la vista del Treeview
+        mostrar_pedido()
+        mostrar_ingredientes()
 
 # Función para generar la boleta y pasar los datos correctamente
 def generar_boleta_interfaz():
@@ -194,6 +205,7 @@ def generar_boleta_interfaz():
     
     # Llamar a la función generar_boleta del módulo generador_boleta.py
     generar_boleta(items, subtotal, iva, total)
+    messagebox.showinfo("Boleta Generada", "La boleta se ha generado correctamente.")
 
 # Crear botones con íconos para cada producto sin texto
 frame_botones = ctk.CTkFrame(pestaña_menus)
