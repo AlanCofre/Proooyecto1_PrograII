@@ -106,24 +106,29 @@ tabla_menus.pack(pady=10)
 
 # Función para actualizar el pedido
 def actualizar_pedido(producto):
-    # Determinar qué menú corresponde al producto seleccionado
+    # Buscar el menú correspondiente en la lista de menús disponibles
+    menu_seleccionado = None
     for menu in MENUS_DISPONIBLES:
         if menu.nombre == producto:
-            # Verificar si hay ingredientes suficientes en el stock
-            if stock.verificar_ingredientes(menu.ingredientes):
-                # Restar los ingredientes utilizados del stock
-                for ingrediente, cantidad in menu.ingredientes.items():
-                    stock.eliminar_ingrediente(ingrediente, cantidad)
+            menu_seleccionado = menu
+            break
 
-                # Añadir el menú al pedido
-                pedido.agregar_menu(menu)
+    if menu_seleccionado:
+        # Verificar si hay suficientes ingredientes en el stock
+        if stock.verificar_ingredientes(menu_seleccionado.ingredientes):
+            # Descontar los ingredientes del stock
+            for ingrediente, cantidad in menu_seleccionado.ingredientes.items():
+                stock.eliminar_ingrediente(ingrediente, cantidad)
 
-                # Mostrar el pedido actualizado en la interfaz
-                mostrar_pedido()
-            else:
-                # Mostrar un mensaje de advertencia si no hay stock suficiente
-                messagebox.showwarning("Stock insuficiente", f"No hay suficiente stock para {producto}")
-            return
+            # Actualizar el pedido
+            pedido.agregar_menu(menu_seleccionado)  # Esto agrega el menú al pedido
+            mostrar_pedido()
+
+            # Actualizar la interfaz de gestión de ingredientes
+            mostrar_ingredientes()
+        else:
+            messagebox.showwarning("No hay suficiente stock", f"No hay suficiente stock para {producto}.")
+
 # Función para mostrar el pedido en la tabla y calcular el total
 def mostrar_pedido():
     # Limpiar la tabla
@@ -141,15 +146,34 @@ def mostrar_pedido():
     # Actualizar la etiqueta del total acumulado
     total_label.configure(text=f"Total: {total_general} CLP")
 
-# Función para eliminar todos los productos del pedido
-def eliminar_pedido():
-    for menu in pedido.menus:
-        if menu:
-            for nombre, cantidad in menu.ingredientes.items():
-                stock.agregar_ingrediente(nombre, cantidad)
-    pedido.menus = []
-    pedido.total = 0
-    mostrar_pedido()
+# Función para eliminar el menú seleccionado y devolver los ingredientes al stock
+def eliminar_menu_seleccionado():
+    # Obtener el elemento seleccionado en el Treeview
+    selected_item = tabla_menus.selection()
+    
+    if selected_item:
+        # Obtener los valores del producto seleccionado
+        item_values = tabla_menus.item(selected_item, 'values')
+        producto_seleccionado = item_values[0]  # El primer valor es el nombre del producto
+
+        # Buscar el menú en el pedido actual
+        for menu in pedido.menus:
+            if menu.nombre == producto_seleccionado:
+                # Devolver los ingredientes al stock
+                for ingrediente, cantidad in menu.ingredientes.items():
+                    stock.agregar_ingrediente(ingrediente, cantidad)
+                
+                # Eliminar el menú del pedido
+                pedido.eliminar_menu(menu)
+                break
+
+        # Eliminar el menú seleccionado de la tabla de pedidos
+        tabla_menus.delete(selected_item)
+        
+        # Actualizar la interfaz de gestión de ingredientes
+        mostrar_ingredientes()
+    else:
+        print("No se ha seleccionado ningún producto.")
 
 # Función para generar la boleta y pasar los datos correctamente
 def generar_boleta_interfaz():
@@ -183,7 +207,7 @@ ctk.CTkButton(frame_botones, image=icon_hamburguesa, text="Hamburguesa", command
 ctk.CTkButton(frame_botones, image=icon_completo, text="Completo", command=lambda: actualizar_pedido("Completo"), width=200, height=40).grid(row=1, column=1, padx=10, pady=10)
 
 # Botón para eliminar el menú
-eliminar_button = ctk.CTkButton(pestaña_menus, text="Eliminar Pedido", command=eliminar_pedido, fg_color="red")
+eliminar_button = ctk.CTkButton(pestaña_menus, text="Eliminar Pedido", command=eliminar_menu_seleccionado, fg_color="red")
 eliminar_button.pack(pady=10)
 
 # Botón para generar la boleta
