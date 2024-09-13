@@ -148,32 +148,30 @@ def mostrar_pedido():
 
 # Función para eliminar el menú seleccionado y devolver los ingredientes al stock
 def eliminar_menu_seleccionado():
-    # Obtener el elemento seleccionado en el Treeview
     selected_item = tabla_menus.selection()
-    
     if selected_item:
-        # Obtener los valores del producto seleccionado
-        item_values = tabla_menus.item(selected_item, 'values')
-        producto_seleccionado = item_values[0]  # El primer valor es el nombre del producto
+        item_values = tabla_menus.item(selected_item)['values']
+        producto = item_values[0]
 
-        # Buscar el menú en el pedido actual
+        # Buscar el menú en el pedido
+        menu_a_eliminar = None
         for menu in pedido.menus:
-            if menu.nombre == producto_seleccionado:
-                # Devolver los ingredientes al stock
-                for ingrediente, cantidad in menu.ingredientes.items():
-                    stock.agregar_ingrediente(ingrediente, cantidad)
-                
-                # Eliminar el menú del pedido
-                pedido.eliminar_menu(menu)
+            if menu.nombre == producto:
+                menu_a_eliminar = menu
                 break
 
-        # Eliminar el menú seleccionado de la tabla de pedidos
-        tabla_menus.delete(selected_item)
-        
-        # Actualizar la interfaz de gestión de ingredientes
-        mostrar_ingredientes()
-    else:
-        print("No se ha seleccionado ningún producto.")
+        if menu_a_eliminar:
+            # Reponer los ingredientes al stock
+            for nombre, cantidad in menu_a_eliminar.ingredientes.items():
+                stock.agregar_ingrediente(nombre, cantidad)
+            
+            # Eliminar el menú del pedido
+            pedido.eliminar_menu(menu_a_eliminar)
+
+            # Actualizar la vista del Treeview
+            mostrar_pedido()
+
+            mostrar_ingredientes()
 
 # Función para generar la boleta y pasar los datos correctamente
 def generar_boleta_interfaz():
