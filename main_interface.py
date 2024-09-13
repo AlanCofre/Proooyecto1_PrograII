@@ -39,17 +39,23 @@ tabla_ingredientes.heading("Nombre", text="Nombre")
 tabla_ingredientes.heading("Cantidad", text="Cantidad")
 tabla_ingredientes.pack(pady=10)
 
+
 # Función para agregar un ingrediente
 def agregar_ingrediente():
     nombre = nombre_entry.get()
     cantidad = cantidad_entry.get()
-    if nombre and cantidad.isdigit():
-        cantidad = int(cantidad)
-        # Añadir ingrediente al stock
-        stock.agregar_ingrediente(nombre, cantidad)
-        mostrar_ingredientes()
-        nombre_entry.delete(0, 'end')
-        cantidad_entry.delete(0, 'end')
+    
+    if nombre and cantidad:
+        if cantidad.isdigit():
+            cantidad = int(cantidad)
+            stock.agregar_ingrediente(nombre, cantidad)
+            mostrar_ingredientes()
+            nombre_entry.delete(0, 'end')
+            cantidad_entry.delete(0, 'end')
+        else:
+            messagebox.showwarning("Advertencia", "La cantidad debe ser un número entero positivo.")
+    else:
+        messagebox.showwarning("Advertencia", "Por favor, complete todos los campos.")
 
 # Función para eliminar un ingrediente
 def eliminar_ingrediente():
@@ -189,20 +195,21 @@ def generar_boleta_interfaz():
     # Llamar a la función generar_boleta del módulo generador_boleta.py
     generar_boleta(items, subtotal, iva, total)
 
-# Crear botones con íconos para cada producto
+# Crear botones con íconos para cada producto sin texto
 frame_botones = ctk.CTkFrame(pestaña_menus)
 frame_botones.pack(pady=10)
 
 # Cargar las imágenes
-icon_papas = ctk.CTkImage(Image.open("IMG/icono_papas_fritas_64x64.png"), size=(40, 40))
-icon_bebida = ctk.CTkImage(Image.open("IMG/icono_cola_64x64.png"), size=(40, 40))
-icon_hamburguesa = ctk.CTkImage(Image.open("IMG/icono_hamburguesa_negra_64x64.png"), size=(40, 40))
-icon_completo = ctk.CTkImage(Image.open("IMG/icono_hotdog_sin_texto_64x64.png"), size=(40, 40))
+icon_papas = ctk.CTkImage(Image.open("IMG/icono_papas_fritas_64x64.png"), size=(50, 50))
+icon_bebida = ctk.CTkImage(Image.open("IMG/icono_cola_64x64.png"), size=(50, 50))
+icon_hamburguesa = ctk.CTkImage(Image.open("IMG/icono_hamburguesa_negra_64x64.png"), size=(50, 50))
+icon_completo = ctk.CTkImage(Image.open("IMG/icono_hotdog_sin_texto_64x64.png"), size=(50, 50))
 
-ctk.CTkButton(frame_botones, image=icon_papas, text="Papas Fritas", command=lambda: actualizar_pedido("Papas fritas"), width=200, height=40).grid(row=0, column=0, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_bebida, text="Pepsi", command=lambda: actualizar_pedido("Pepsi"), width=200, height=40).grid(row=0, column=1, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_hamburguesa, text="Hamburguesa", command=lambda: actualizar_pedido("Hamburguesa"), width=200, height=40).grid(row=1, column=0, padx=10, pady=10)
-ctk.CTkButton(frame_botones, image=icon_completo, text="Completo", command=lambda: actualizar_pedido("Completo"), width=200, height=40).grid(row=1, column=1, padx=10, pady=10)
+# Botones solo con iconos
+ctk.CTkButton(frame_botones, image=icon_papas, command=lambda: actualizar_pedido("Papas fritas"), width=40, height=40, fg_color="transparent", text="").grid(row=0, column=0, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_bebida, command=lambda: actualizar_pedido("Pepsi"), width=40, height=40, fg_color="transparent", text="").grid(row=0, column=1, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_hamburguesa, command=lambda: actualizar_pedido("Hamburguesa"), width=40, height=40, fg_color="transparent", text="").grid(row=1, column=0, padx=10, pady=10)
+ctk.CTkButton(frame_botones, image=icon_completo, command=lambda: actualizar_pedido("Completo"), width=40, height=40, fg_color="transparent", text="").grid(row=1, column=1, padx=10, pady=10)
 
 # Botón para eliminar el menú
 eliminar_button = ctk.CTkButton(pestaña_menus, text="Eliminar Pedido", command=eliminar_menu_seleccionado, fg_color="red")
